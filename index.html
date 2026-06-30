@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mật Mã Tình Yêu 💖</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #050003; color: #fff; font-family: 'Segoe UI', Arial, sans-serif; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; perspective: 2000px; }
+
+        #secret-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #050003; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
+        #hiddenInput { margin-top: 25px; width: 180px; padding: 12px; text-align: center; font-size: 24px; background: #1a0510; color: #ff7675; border: 2px solid #ff7675; border-radius: 10px; outline: none; box-shadow: 0 0 15px rgba(255, 118, 117, 0.4); transition: all 0.3s ease; }
+        #hiddenInput:focus { box-shadow: 0 0 25px rgba(255, 118, 117, 0.8); border-color: #fab1a0; }
+        .secret-hint { font-size: 16px; color: #ff7675; text-align: center; letter-spacing: 2px; animation: breathe 3s infinite; }
+
+        .envelope-container { position: relative; width: 320px; height: 220px; display: none; opacity: 0; transform: scale(0.8) rotateY(-10deg); transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1); transform-style: preserve-3d; }
+        .envelope { position: absolute; width: 100%; height: 100%; background: linear-gradient(135deg, #bdc3c7, #2c3e50); border-radius: 6px; box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.4); z-index: 4; }
+        .flap { position: absolute; top: 0; left: 0; width: 0; height: 0; border-left: 160px solid transparent; border-right: 160px solid transparent; border-top: 120px solid #7f8c8d; transform-origin: top; transition: transform 0.8s ease; z-index: 6; }
+        .pocket { position: absolute; bottom: 0; left: 0; width: 0; height: 0; border-left: 160px solid #95a5a6; border-right: 160px solid #95a5a6; border-bottom: 120px solid #7f8c8d; border-top: 100px solid transparent; border-radius: 6px; z-index: 5; }
+        
+        .letter { 
+            position: absolute; bottom: 10px; left: 15px; width: 290px; height: 200px; 
+            background: #fffdf5; border-radius: 4px; padding: 20px; color: #2c3e50; 
+            font-size: 13.5px; line-height: 1.6; transform: translateY(0); 
+            transition: transform 1.5s cubic-bezier(0.25, 1, 0.5, 1); z-index: 3; 
+            box-shadow: 0 0 15px rgba(0,0,0,0.15); opacity: 0; 
+            animation: fadeInText 2s ease forwards;
+            word-wrap: break-word; overflow: hidden; cursor: pointer;
+        }
+        .letter h2 { color: #c0392b; font-size: 17px; margin-bottom: 10px; font-weight: bold; }
+        .letter p { font-style: italic; text-align: justify; }
+
+        .envelope-container.open .flap { transform: rotateX(180deg); z-index: 2; }
+        .envelope-container.open .letter { transform: translateY(-165px) translateZ(40px) scale(1.05); z-index: 7; }
+        .envelope-container.fade-out { opacity: 0; transform: scale(0.4) rotateX(45deg); pointer-events: none; }
+
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 2s ease; pointer-events: none; z-index: 10000; }
+        #canvas-container.show { opacity: 1; pointer-events: auto; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        .center-text { position: absolute; top: 85%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; font-weight: bold; color: #ff7675; text-shadow: 0 0 20px #d63031; opacity: 0; transition: opacity 2.5s ease 1s; text-align: center; width: 100%; letter-spacing: 2px; }
+
+        @keyframes breathe { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        @keyframes fadeInText { to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="secret-screen">
+        <div class="secret-hint">• Nhập mật mã của chúng mình •</div>
+        <input type="password" id="hiddenInput" maxlength="4" pattern="\d*" inputmode="numeric" placeholder="••••" oninput="checkSecret(this)" autofocus>
+    </div>
+
+    <div class="envelope-container" id="envelopeContainer">
+        <div class="flap"></div>
+        <div class="envelope"></div>
+        <div class="letter" onclick="triggerHeart()">
+            <h2>Gửi người anh thương nhất ❤️</h2>
+            <p>Thế giới của anh đã từng rất bình lặng, cho đến khi em xuất hiện và thắp sáng mọi thứ. Cảm ơn em vì đã chọn đồng hành cùng anh, đã kiên nhẫn và yêu thương anh. Anh không hứa sẽ hoàn hảo, nhưng anh hứa sẽ luôn yêu em bằng tất cả những gì anh có. Yêu em, công chúa của anh!</p>
+        </div>
+        <div class="pocket"></div>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="heartCanvas"></canvas>
+        <div class="center-text" id="sweetText">Mãi bên nhau em nhé! 💕</div>
+    </div>
+
+    <script>
+        let hasTriggered = false;
+
+        function checkSecret(input) {
+            if (input.value === "2711") {
+                document.getElementById('secret-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('secret-screen').style.display = 'none';
+                    startEnvelopeSequence();
+                }, 600);
+            } else if (input.value.length >= 4) { input.value = ""; }
+        }
+
+        const envelopeContainer = document.getElementById('envelopeContainer');
+        const canvasContainer = document.getElementById('canvas-container');
+        const sweetText = document.getElementById('sweetText');
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [], textRings = [], angleY = 0, pulseTime = 0;
+
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function startEnvelopeSequence() {
+            envelopeContainer.style.display = 'block';
+            setTimeout(() => {
+                envelopeContainer.style.opacity = '1';
+                envelopeContainer.style.transform = 'scale(1) rotateY(0deg)';
+                setTimeout(() => { envelopeContainer.classList.add('open'); }, 800);
+            }, 100);
+        }
+
+        function triggerHeart() {
+            if(hasTriggered) return;
+            hasTriggered = true;
+            
+            envelopeContainer.classList.add('fade-out');
+            
+            setTimeout(() => {
+                envelopeContainer.style.display = 'none';
+                canvasContainer.classList.add('show');
+                sweetText.style.opacity = '1';
+                init5DHeart();
+                animate5D();
+            }, 1000);
+        }
+
+        function init5DHeart() {
+            particles = [];
+            textRings = [];
+            const loveQuotes = ["Anh yêu em", "Cảm ơn vì có em", "Mãi bên nhau", "Em là tất cả"];
+            loveQuotes.forEach((text, index) => {
+                textRings.push({ text: text, radius: 150 + index * 40, angle: index * (Math.PI / 2), speed: 0.005, yPos: 160 + index * 10 });
+            });
+
+            for (let i = 0; i < 2000; i++) { // Giảm nhẹ số lượng hạt
+                let t = Math.PI * (Math.random() * 2 - 1);
+                let scaleHeart = 12; 
+                let x3d = scaleHeart * 16 * Math.pow(Math.sin(t), 3);
+                let y3d = scaleHeart * (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+                let z3d = (Math.random() * 2 - 1) * 30;
+
+                particles.push({
+                    x3d: x3d, y3d: -y3d, z3d: z3d,
+                    curX: Math.random() * canvas.width, curY: canvas.height + Math.random() * 100,
+                    size: Math.random() * 1.5 + 0.5,
+                    hue: 330 + Math.random() * 30,
+                    speed: 0.02 + Math.random() * 0.03, 
+                    waveOffset: Math.random() * Math.PI * 2
+                });
+            }
+        }
+
+        function animate5D() {
+            // Xóa canvas hiệu quả hơn để tránh bị "nhòe" quá mức
+            ctx.fillStyle = 'rgba(5, 0, 3, 0.25)'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Bỏ globalCompositeOperation = 'lighter' hoặc giảm độ sáng xuống
+            // Ở đây mình dùng source-over cho trái tim nét hơn
+            ctx.globalCompositeOperation = 'source-over'; 
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const FOV = 500;
+            
+            angleY += 0.008;
+            pulseTime += 0.05;
+            let heartPulse = 1 + Math.sin(pulseTime) * 0.03; 
+
+            // Vẽ văn bản
+            textRings.forEach(ring => {
+                ring.angle += ring.speed;
+                let rx = Math.cos(ring.angle) * ring.radius;
+                let rz = Math.sin(ring.angle) * ring.radius;
+                let rotX = rx * Math.cos(angleY) - rz * Math.sin(angleY);
+                let rotZ = rz * Math.cos(angleY) + rx * Math.sin(angleY);
+                let scale = FOV / (FOV + rotZ);
+                if(scale > 0) {
+                    ctx.fillStyle = `hsla(330, 80%, 70%, ${0.5 + scale * 0.5})`;
+                    ctx.font = `bold ${12 * scale}px Arial`;
+                    ctx.fillText(ring.text, centerX + rotX * scale, (centerY + ring.yPos) + (rotZ * 0.1));
+                }
+            });
+
+            // Vẽ hạt
+            particles.forEach(p => {
+                let pulseX = p.x3d * heartPulse;
+                let pulseY = p.y3d * heartPulse;
+                let pulseZ = p.z3d * heartPulse;
+                
+                let cosY = Math.cos(angleY); 
+                let sinY = Math.sin(angleY);
+                let xRot = pulseX * cosY - pulseZ * sinY;
+                let zRot = pulseZ * cosY + pulseX * sinY;
+                let scale = FOV / (FOV + zRot);
+                
+                let targetX = centerX + xRot * scale;
+                let targetY = centerY + pulseY * scale;
+
+                p.curX += (targetX - p.curX) * p.speed;
+                p.curY += (targetY - p.curY) * p.speed;
+
+                ctx.beginPath();
+                ctx.arc(p.curX, p.curY, p.size * scale, 0, Math.PI * 2);
+                // Giảm alpha của hạt để không làm cháy sáng
+                ctx.fillStyle = `hsla(${p.hue}, 90%, 60%, 0.5)`;
+                ctx.fill();
+            });
+            
+            requestAnimationFrame(animate5D);
+        }
+    </script>
+</body>
+</html>
